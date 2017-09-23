@@ -9,8 +9,8 @@ import json
 import requests
 #from xml.etree import ElementTree
 import xmltodict
-from StringIO import StringIO
-import types
+from six import StringIO, string_types
+
 
 # Patch the json module to handle python dattime objects
 json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime.datetime) else None)
@@ -317,11 +317,11 @@ class XMLHelper(object):
         """
 
         # Short-circuit for strings, otherwise they will test True on Iterable
-        if isinstance(xmldict, basestring):
+        if isinstance(xmldict, string_types):
             return
 
         # Go through each dictionary element and rename the keys if necessary
-        elif isinstance(xmldict, types.DictionaryType):
+        elif isinstance(xmldict, dict):
             allkeys = xmldict.keys()
 
             # Rename any @keys
@@ -358,12 +358,12 @@ class XMLHelper(object):
             xmldict:        the dictionary to transform (dict)
             skipKeys:       a list of keys to skip transforming (list of str)
         """
-        if isinstance(xmldict, basestring):
+        if isinstance(xmldict, string_types):
             temp = XMLHelper._AttemptStrToBool(xmldict)
             return XMLHelper._AttemptStrToNum(temp)
-        if isinstance(xmldict, types.DictionaryType):
-            for key in xmldict.iterkeys():
-                if isinstance(xmldict[key], basestring):
+        if isinstance(xmldict, dict):
+            for key in xmldict.keys():
+                if isinstance(xmldict[key], string_types):
                     if skipKeys and key in skipKeys:
                         continue
                     xmldict[key] = XMLHelper._AttemptStrToBool(xmldict[key])
@@ -372,7 +372,7 @@ class XMLHelper(object):
                     XMLHelper.StringToNumber(xmldict[key], skipKeys)
         elif isinstance(xmldict, collections.Iterable):
             for idx, value in enumerate(xmldict):
-                if isinstance(value, basestring):
+                if isinstance(value, string_types):
                     xmldict[idx] = XMLHelper._AttemptStrToBool(value)
                     xmldict[idx] = XMLHelper._AttemptStrToNum(value)
                 else:
@@ -390,7 +390,7 @@ class XMLHelper(object):
         Returns:
             the possibly converted value (int or float or str)
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             return value
 
         before = value
@@ -420,7 +420,7 @@ class XMLHelper(object):
         Returns:
             the possibly converted value (bool or str)
         """
-        if not isinstance(value, basestring):
+        if not isinstance(value, string_types):
             return value
 
         before = value
@@ -462,7 +462,7 @@ class ISYDataHelpers(object):
         XMLHelper.AttrToMember(node)
         XMLHelper.EnsureMember(node, "property", list)
         node["properties"] = node.pop("property")
-        if isinstance(node["properties"], types.DictionaryType):
+        if isinstance(node["properties"], dict):
             node["properties"] = [node["properties"]]
         for prop in node["properties"]:
             prop["rawvalue"] = prop.pop("value")
@@ -518,9 +518,9 @@ class ISYDataHelpers(object):
         buff.write("{")
         for key, value in sorted(stringify.items()):
             buff.write("{}=".format(key))
-            if isinstance(value, basestring):
+            if isinstance(value, string_types):
                 buff.write(value)
-            elif isinstance(value, types.DictionaryType):
+            elif isinstance(value, dict):
                 buff.write("{")
                 buff.write(ISYDataHelpers.StringifyDict(value))
                 buff.write("}")
@@ -559,7 +559,7 @@ if __name__ == '__main__':
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-    isy = ISYController("192.168.1.121", "admin", "zGnC3reu9v")
+    isy = ISYController("isy994i", "admin", "admin")
 #    isy = ISYController("cseelye.asuscomm.com:4343", "admin", "zGnC3reu9v", useHTTPS=True, ignoreCert=True)
 
     # prog = isy.GetProgram("testprog")
@@ -569,8 +569,8 @@ if __name__ == '__main__':
 
 #    print json.dumps(isy.ListAllPrograms(), sort_keys=True, indent=4)
 
-    dev = isy.GetDevice(name="Couch lamps")
-    print repr(dev)
+    dev = isy.GetDevice(name="ZW 009 Multilevel Sensor")
+    print(repr(dev))
 
 #    print isy._ControllerRequest("nodes/40%20E6%2083%201/cmd/DOFF/255")
 #    print json.dumps(isy.GetNodeByName("Front lights"), sort_keys=True, indent=4)
