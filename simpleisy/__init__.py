@@ -7,26 +7,30 @@ import collections
 import datetime
 import json
 import requests
-#from xml.etree import ElementTree
 import xmltodict
 from six import StringIO, string_types
-
 
 # Patch the json module to handle python dattime objects
 json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime.datetime) else None)
 
+
 class ISYError(Exception):
     """Base exception for all ISY related errors"""
 
+
 class ISYObjectNotFound(ISYError):
     """Exception thrown when an object could not be found"""
+
     def __init__(self, nodeName):
         super(ISYObjectNotFound, self).__init__("Object '{}' could not be found".format(nodeName))
 
+
 class ISYCommandFailed(ISYError):
     """Exception thrown when a command fails"""
+
     def __init__(self, cmd, nodeName):
         super(ISYCommandFailed, self).__init__("Command '{}' to '{}' failed".format(cmd, nodeName))
+
 
 class ISYController(object):
     """
@@ -41,7 +45,7 @@ class ISYController(object):
             ipAddress:      the ISY IP/hostname.  include :port to use a customer port
             username:       the ISY username
             password:       the ISY password
-            userHTTPS:      use https instead of http
+            useHTTPS:       use https instead of http
             ignoreCert:     if using https, ignore invalid certs
         """
         self.ip = ipAddress
@@ -65,9 +69,7 @@ class ISYController(object):
                                                        url),
                               auth=(self.username, self.password),
                               verify=self.verifyCert)
-#        print result.headers
-#        print result.text
- 
+
         # Convert XML to dictionary
         res = xmltodict.parse(result.text)
 
@@ -99,8 +101,6 @@ class ISYController(object):
             res["node"] = []
         res["nodes"] = res.pop("node")
 
-#        print res
-
         for node in res["nodes"]:
             ISYDataHelpers.TransformNode(node)
         for group in res["groups"]:
@@ -119,7 +119,7 @@ class ISYController(object):
         res = res["programs"]["program"]
         for prog in res:
             ISYDataHelpers.TransformProgram(prog)
-        
+
         return res
 
     def GetNode(self, name=None, address=None, searchKey=None):
@@ -209,6 +209,7 @@ class ISYController(object):
         if not result["RestResponse"]["succeeded"]:
             raise ISYCommandFailed(command, programID)
 
+
 class ISYDevice(object):
     """
     This object represents a device connected to the ISY controller
@@ -220,7 +221,7 @@ class ISYDevice(object):
         """
         self.controller = controller
         self.properties = deviceProperties
-        
+
         self.address = self.properties["address"]
         self.name = self.properties["name"]
 
@@ -248,8 +249,8 @@ class ISYDevice(object):
         Args:
             level:  the level to turn on to, as a percent (int)
         """
-        onamount = level * 255 / 100
-        self.controller.NodeCommand(self.address, "DON/{}".format(onamount))
+        on_amount = level * 255 / 100
+        self.controller.NodeCommand(self.address, "DON/{}".format(on_amount))
 
     def TurnOff(self):
         """
@@ -262,6 +263,7 @@ class ISYScene(ISYDevice):
     """
     This object represents a scene defined in the ISY controller
     """
+
 
 class ISYProgram(object):
     """
@@ -352,7 +354,8 @@ class XMLHelper(object):
     @staticmethod
     def StringToNumber(xmldict, skipKeys=None):
         """
-        Recursively search a dictionary and convert string values that look like bool, float or int, into their actual types
+        Recursively search a dictionary and convert string values that look like bool,
+        float or int, into their actual types
 
         Args:
             xmldict:        the dictionary to transform (dict)
@@ -405,7 +408,7 @@ class XMLHelper(object):
                 after = int(value)
             except ValueError:
                 pass
-#        print "before={} after={}".format(before, after)
+            #        print "before={} after={}".format(before, after)
         assert before == str(after)
         return after
 
@@ -429,7 +432,7 @@ class XMLHelper(object):
             after = True
         elif value.lower() == "false":
             after = False
-#        print "before={} after={}".format(before, after)
+        #        print "before={} after={}".format(before, after)
         assert before.lower() == str(after).lower()
         return after
 
@@ -445,6 +448,7 @@ class XMLHelper(object):
         """
         if key not in xmldict or not xmldict[key]:
             xmldict[key] = valtype()
+
 
 class ISYDataHelpers(object):
     """
@@ -553,25 +557,24 @@ class ISYDataHelpers(object):
 
 
 if __name__ == '__main__':
-    import time
-    
+
     # Disable SSL warning from requests
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
     isy = ISYController("isy994i", "admin", "admin")
-#    isy = ISYController("cseelye.asuscomm.com:4343", "admin", "zGnC3reu9v", useHTTPS=True, ignoreCert=True)
+    #    isy = ISYController("cseelye.asuscomm.com:4343", "admin", "zGnC3reu9v", useHTTPS=True, ignoreCert=True)
 
     # prog = isy.GetProgram("testprog")
     # prog.RunElse()
     # time.sleep(10)
     # prog.Run()
 
-#    print json.dumps(isy.ListAllPrograms(), sort_keys=True, indent=4)
+    #    print json.dumps(isy.ListAllPrograms(), sort_keys=True, indent=4)
 
     dev = isy.GetDevice(name="ZW 009 Multilevel Sensor")
     print(repr(dev))
 
-#    print isy._ControllerRequest("nodes/40%20E6%2083%201/cmd/DOFF/255")
+# print isy._ControllerRequest("nodes/40%20E6%2083%201/cmd/DOFF/255")
 #    print json.dumps(isy.GetNodeByName("Front lights"), sort_keys=True, indent=4)
-
